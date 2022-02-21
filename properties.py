@@ -1,6 +1,7 @@
 import numpy as np
 from scipy import interpolate
 
+
 def rho(t_air) -> np.float64:
     """Calculates air density from temperature"""
     temperatures = [250, 300, 350, 400, 450]
@@ -15,8 +16,9 @@ def kf(t_f):
     # kinematic viscosity here: https://wiki.anton-paar.com/en/water/
     temperatures = np.array([278.15, 298.15, 323.15, 348.15, 368.15])
     densities = np.array([1000, 997.1, 988, 974.9, 961.9])
-    mu = np.array([0.001519, 0.0008905, 0.0005471, 0.0003779, 0.0002974]) # dynamic viscosity (Pa.s)
-    kf_vec = np.array([0.5576, 0.5948,0.6305, 0.653, 0.6634])
+    # dynamic viscosity (Pa.s)
+    mu = np.array([0.001519, 0.0008905, 0.0005471, 0.0003779, 0.0002974])
+    kf_vec = np.array([0.5576, 0.5948, 0.6305, 0.653, 0.6634])
     Prf_vec = np.array([11.44, 6.263, 3.628, 2.425, 1.888])
     nyf_vec = mu/densities
     kf_spline = interpolate.interp1d(temperatures, kf_vec, kind='cubic')
@@ -36,12 +38,9 @@ def air_prop(t_a):
     ka_vec = np.array([22.3, 26.3, 30.0, 33.8, 37.3]) * 1e-3
     k_a_spline = interpolate.interp1d(temperatures, ka_vec, kind='cubic')
     ny_a_spline = interpolate.interp1d(temperatures, ny_vec, kind='cubic')
-    alpha_a_spline = interpolate.interp1d(temperatures, alpha_vec, kind='cubic')
-    try:
-        ny_a = ny_a_spline(t_a)
-    except ValueError as e:
-        print("ERROR:",e)
-        print(t_a)
+    alpha_a_spline = interpolate.interp1d(
+        temperatures, alpha_vec, kind='cubic')
+    ny_a = ny_a_spline(t_a)
     alpha_a = alpha_a_spline(t_a)
     k_a = k_a_spline(t_a)
     return [ny_a, alpha_a, k_a]
@@ -50,9 +49,10 @@ def air_prop(t_a):
 def waterprop(t_f):
     """Calculates fluid density and heat capacity from temperature"""
     temperatures = np.array([278.15, 298.15, 323.15, 348.15, 368.15])
-    cp_f_vec = np.array([4200,4183,4181,4190,4210])
+    cp_f_vec = np.array([4200, 4183, 4181, 4190, 4210])
     densities = np.array([1000, 997.1, 988, 974.9, 961.9])
-    density_spline = interpolate.interp1d(temperatures, densities, kind='cubic')
+    density_spline = interpolate.interp1d(
+        temperatures, densities, kind='cubic')
     cp_f_spline = interpolate.interp1d(temperatures, cp_f_vec, kind='cubic')
     rho_f = density_spline(t_f)
     c_f = cp_f_spline(t_f)
