@@ -6,7 +6,7 @@ import pandas as pd
 from coefficients import coeff
 from plotting import plots
 
-n_nodes, flowrate, total_simulation_time, t_in_0 = 18, 55, 4000, 25
+n_nodes, flowrate, total_simulation_time, t_in_0 = 8, 55, 4000, 25
 # n_nodes= number of nodes along the tube.
 # flowrate= the total flow rate enter the system in Liters per hour
 # total_simulation_time= total running time (s).
@@ -34,10 +34,6 @@ def step_down(t, trigger_time):
     if t <= trigger_time:
         return 1
     return 0
-
-
-def calc_error(quantity, quantity_old, j):
-    return abs(quantity[j] - quantity_old[j]) / quantity[j]
 
 
 t_amb = np.zeros(n_time_steps + 1) + (28+273.15)  # Ambient temp.
@@ -73,6 +69,20 @@ def check_convergence(n_nodes, n_converge):
                 break
     return n_converge
 
+def calc_t_glass(i,t):
+    return ((t_glass_old[i] / dtau) + (B[i] * t_amb[t]) + (C[i] * t_abs[i]) + (D[i] * t_air[i]) + (E[i] * G_r[t])) / F[i]
+
+def calc_t_air(i,t):
+    return ((t_air_old[i] / dtau) + (G[i] * (t_glass[i] + t_abs[i]))) / H[i]
+
+def calc_t_abs(i,t):
+    return ((t_abs_old[i] / dtau) + (K[i] * G_r[t]) + (L[i] * t_glass[i]) + (M[i] * t_air[i]) + (O[i] * t_water[i]) + (P[i] * t_insul[i])) / Q[i]
+
+def calc_t_insul(i,t):
+    return ((t_insul_old[i] / dtau) + (V[i] * t_abs[i]) + (W[i] * t_amb[t])) / X[i]
+
+def calc_t_water(i,t):
+    return ((t_water_old[i] / dtau) + (R[i] * t_abs[i]) + (S[i] * t_water[i - 1] / dz)) / U[i]
 
 for t in range(n_time_steps):
     n_converge = 0
@@ -87,17 +97,18 @@ for t in range(n_time_steps):
         t_abs_old = t_abs.copy()
         t_water_old = t_water.copy()
         t_insul_old = t_insul.copy()
-        t_glass[0] = ((t_glass_old[0] / dtau) + (B[0] * t_amb[t]) + (C[0] * t_abs[0]) + (D[0] * t_air[0]) + (E[0] * G_r[t])) / F[0]
-        t_air[0] = ((t_air_old[0] / dtau) + (G[0] * (t_glass[0] + t_abs[0]))) / H[0]
-        t_abs[0] = ((t_abs_old[0] / dtau) + (K[0] * G_r[t]) + (L[0] * t_glass[0]) + (M[0] * t_air[0]) + (O[0] * t_water[0]) + (P[0] * t_insul[0])) / Q[0]
+
+        t_glass[0] = calc_t_glass(0,t)
+        t_air[0] = calc_t_air(0,t)
+        t_abs[0] = calc_t_abs(0,t)
+        t_insul[0] = calc_t_insul(0,t)
         t_water[0] = t_in[t]
-        t_insul[0] = ((t_insul_old[0] / dtau) + (V[0] * t_abs[0]) + (W[0] * t_amb[t])) / X[0]
         for j in range(1, n_nodes):
-            t_glass[j] = ((t_glass_old[j] / dtau) + (B[j] * t_amb[t]) + (C[j] * t_abs[j]) + (D[j] * t_air[j]) + (E[j] * G_r[t])) / F[j]
-            t_air[j] = ((t_air_old[j] / dtau) +(G[j] * (t_glass[j] + t_abs[j]))) / H[j]
-            t_abs[j] = ((t_abs_old[j] / dtau) + (K[j] * G_r[t]) + (L[j] * t_glass[j]) +(M[j] * t_air[j]) + (O[j] * t_water[j]) + (P[j] * t_insul[j])) / Q[j]
-            t_water[j] = ((t_water_old[j] / dtau) + (R[j] * t_abs[j]) + (S[j] * t_water[j - 1] / dz)) / U[j]
-            t_insul[j] = ((t_insul_old[j] / dtau) + (V[j] * t_abs[j]) + (W[j] * t_amb[t])) / X[j]
+            t_glass[j] = calc_t_glass(j,t)
+            t_air[j] = calc_t_air(j,t)
+            t_abs[j] = calc_t_abs(j,t)
+            t_water[j] = calc_t_water(j,t)
+            t_insul[j] = calc_t_insul(j,t)
         n_converge = check_convergence(n_nodes, n_converge)
     t_glass_node[t] = t_glass[selected_node]
     t_air_node[t] = t_air[selected_node]
