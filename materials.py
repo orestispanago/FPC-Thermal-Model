@@ -44,6 +44,21 @@ class Water:
         """Calculates water Prandtl number"""
         return self.prandtl_spline(t_f)
 
+    def reynolds(self, t_f: np.ndarray, d_in: float, w_f: float) -> np.ndarray:
+        """Calculates water Reynolds number"""
+        ny = self.ny(t_f)
+        return w_f * d_in / ny
+
+    def nusselt(self, t_f, d_in, w_f, length):
+        """Calculates water Nusselt number"""
+        prandtl = self.prandtl(t_f)
+        reynolds = self.reynolds(t_f, d_in, w_f)
+        return 4.4 + (.00398 * (reynolds * prandtl * (d_in / length))**1.66 / (1 + .0114 * (reynolds * prandtl * (d_in / length))**1.12))
+
+    def h(self, t_in, d_in, w_f, length):
+        """Calculates air thermal conductivity (W/m.k)"""
+        return self.nusselt(t_in, d_in, w_f, length) * self.k(t_in) / d_in
+
 
 class Air:
     def __init__(self):
@@ -75,3 +90,25 @@ class Air:
     def k(self, t_a: np.ndarray) -> np.ndarray:
         "Calculates air thermal conductivity from temperature (W/m.k)"
         return self.k_spline(t_a)
+
+
+class Ambient:
+    def __init__(self, length, width):
+        self.ny = 1.5743 * 10**-5  # kinematic viscosity (m2/s)
+        self.U_inf = 1.5  # wind velocity
+        self.k = 0.0262  # thermal conductivity (W/m.K)
+        self.prandtl = 0.71432  # Prandtl number
+        # collector characteristic length
+        self.delta = 4 * length * width / np.sqrt(length**2 + width**2)
+
+    def reynolds(self):
+        """Calculates ambient Reynolds number"""
+        return self.U_inf * self.delta / self.ny
+
+    def nusselt(self):
+        """Calculates ambient Nusselt number"""
+        return 0.86 * self.reynolds()**.5 * self.prandtl ** (1 / 3)
+
+    def h(self):
+        """Calculates ambient thermal conductivity (W/m.k)"""
+        return self.nusselt() * self.k / self.delta

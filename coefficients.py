@@ -1,6 +1,9 @@
 import numpy as np
 
-from constants import *
+from constants import (alpha, cp_abs, cp_air, cp_glass, cp_insul, d_in,
+                       delta_a, delta_abs, delta_glass, delta_insul, flow_area,
+                       k_insul, p, r_in, r_o, rho_abs, rho_glass, rho_insul,
+                       tau_alpha)
 from heat_transfer_coefficients import get_h
 from materials import Air, Water
 
@@ -47,12 +50,11 @@ def coeff(t_glass, t_air, t_abs, t_water, t_insul, t_amb, dtau, dz, n_nodes, mdo
         M[j] = h_c1[j] * p / J[j]
         O[j] = np.pi * d_in * h_water[j] / J[j]
         P[j] = p * k_insul / (J[j] * delta_insul)
-        G[j] = h_c1[j] * p / (cp_air * rho_air[j] *
-                              (p * delta_a - np.pi * r_o**2))
+        G[j] = h_c1[j] * p / (cp_air * rho_air[j] * (p * delta_a - np.pi * r_o**2))
         H[j] = (1 / dtau) + (2 * G[j])
         Q[j] = (1 / dtau) + L[j] + M[j] + O[j] + P[j]
-        R[j] = np.pi * d_in * h_water[j] / (cp_water[j] * rho_water[j] * A)
-        S[j] = mdot / (rho_water[j] * A)
+        R[j] = np.pi * d_in * h_water[j] / (cp_water[j] * rho_water[j] * flow_area)
+        S[j] = mdot / (rho_water[j] * flow_area)
         U[j] = (1 / dtau) + R[j] + (S[j] / dz)
         V[j] = 2 * k_insul / (cp_insul * rho_insul * delta_insul**2)
         W[j] = 2 * h_insul_amb[j] / (cp_insul * rho_insul * delta_insul)
