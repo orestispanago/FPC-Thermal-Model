@@ -1,29 +1,26 @@
 import time
-from tabnanny import check
-from tkinter import N
 
 import numpy as np
 
-from calculations import GlassCover
 from coefficients import coeff
+from components import Absorber, AirGap, GlassCover, Insulation, Water
 from output import save_to_file
 from plotting import plots
 
-n_nodes, flowrate, total_simulation_time, t_in_0 = 8, 55, 4000, 25
-# n_nodes= number of nodes along the tube.
-# flowrate= the total flow rate enter the system in Liters per hour
-# total_simulation_time= total running time (s).
-# t_in_0= initial input temperature (C)
-collector_area = 80 * 39 * 0.0254**2  # (m**2) converted from inches to m
-n_tubes = 8  # number of tubes
-d_in = 9.5 / 1000  # tube inner diameter
-L = 1900 / 1000  # length of tubes
-flow_per_tube = flowrate / n_tubes  # mass flow rate per tube (GPM)
-Vdot = flow_per_tube / 3.6e+6  # volume flow rate per tube (m**3/s)
-mdot = Vdot * 1000  # mass flow rate per tube (Kg/s)
-w_f = 4 * Vdot / (np.pi * d_in**2)  # working fluid velocity
-dz = L / (n_nodes - 1)  # spatial step (m)
-dtau = dz / w_f  # maximum time step (s)
+n_nodes = 8                             # number of nodes along the tube
+flowrate = 55                           # total flow rate (Liters per hour)
+total_simulation_time = 4000            # total running time (s)
+t_in_0 = 25                             # initial input temperature (C)
+collector_area = 80 * 39 * 0.0254**2    # (m**2) converted from inches to m
+n_tubes = 8                             # number of tubes
+d_in = 9.5 / 1000                       # tube inner diameter
+L = 1900 / 1000                         # length of tubes
+flow_per_tube = flowrate / n_tubes      # mass flow rate per tube (GPM)
+Vdot = flow_per_tube / 3.6e+6           # volume flow rate per tube (m**3/s)
+mdot = Vdot * 1000                      # mass flow rate per tube (Kg/s)
+w_f = 4 * Vdot / (np.pi * d_in**2)      # working fluid velocity
+dz = L / (n_nodes - 1)                  # spatial step (m)
+dtau = dz / w_f                         # maximum time step (s)
 n_time_steps = round(total_simulation_time / dtau)  # number of time steps
 time_steps = np.arange(n_time_steps)
 selected_node = int(n_nodes / 2)
@@ -35,16 +32,6 @@ start = time.time()
 
 t_amb = np.zeros(n_time_steps + 1) + (28+273.15)  # Ambient temp.
 G_r = np.zeros(n_time_steps + 1)  # Heat flux of solar radiation. (W/sqm)
-# t_glass = np.ones(n_nodes) * 293  # initial glass temp.
-t_air = np.ones(n_nodes) * 293    # initial air gap temp.
-t_abs = np.ones(n_nodes) * 293    # initial absorber temp.
-t_water = np.ones(n_nodes) * 293  # initial fluid temp.
-t_insul = np.ones(n_nodes) * 293  # initial insulation temp.
-t_glass_node = np.zeros(n_time_steps)
-t_air_node = np.zeros(n_time_steps)
-t_abs_node = np.zeros(n_time_steps)
-t_water_node = np.zeros(n_time_steps)
-t_insul_node = np.zeros(n_time_steps)
 t_out = np.zeros(n_time_steps)
 Q_dot = np.zeros(n_time_steps)
 eff = np.zeros(n_time_steps)
@@ -57,17 +44,21 @@ def step_down(t, trigger_time):
     return 0
 
 
-glass = GlassCover(n_nodes, 293)
+glass = GlassCover(n_nodes, 293, n_time_steps)
+air = AirGap(n_nodes, 293, n_time_steps)
+absorber = Absorber(n_nodes, 293, n_time_steps)
+water = Water(n_nodes, 293, n_time_steps)
+insulation = Insulation(n_nodes, 293, n_time_steps)
 
 
-def check_convergence(n_nodes, n_converge, glass):
+def check_convergence(n_nodes, n_converge, glass, air, absorber):
     for j in range(n_nodes):
         error = np.zeros(5)
-        error[0] = glass.check_converge(j)
-        error[1] = abs(t_air[j] - t_air_old[j]) / t_air[j]
-        error[2] = abs(t_abs[j] - t_abs_old[j]) / t_abs[j]
-        error[3] = abs(t_water[j] - t_water_old[j]) / t_water[j]
-        error[4] = abs(t_insul[j] - t_insul_old[j]) / t_insul[j]
+        error[0] = glass.error(j)
+        error[1] = air.error(j)
+        error[2] = absorber.error(j)
+        error[3] = water.error(j)
+        error[4] = insulation.error(j)
         for i in range(5):
             if error[i] <= 10**-4:
                 n_converge += 1
@@ -76,64 +67,44 @@ def check_convergence(n_nodes, n_converge, glass):
     return n_converge
 
 
-# def calc_t_glass(i, t):
-#     return ((t_glass_old[i] / dtau) + (B[i] * t_amb[t]) + (C[i] * t_abs[i]) + (D[i] * t_air[i]) + (E[i] * G_r[t])) / F[i]
-
-
-def calc_t_air(i, t, glass):
-    return ((t_air_old[i] / dtau) + (G[i] * (glass.t_glass[i] + t_abs[i]))) / H[i]
-
-
-def calc_t_abs(i, t, glass):
-    return ((t_abs_old[i] / dtau) + (K[i] * G_r[t]) + (L[i] * glass.t_glass[i]) + (M[i] * t_air[i]) + (O[i] * t_water[i]) + (P[i] * t_insul[i])) / Q[i]
-
-
-def calc_t_insul(i, t):
-    return ((t_insul_old[i] / dtau) + (V[i] * t_abs[i]) + (W[i] * t_amb[t])) / X[i]
-
-
-def calc_t_water(i):
-    return ((t_water_old[i] / dtau) + (R[i] * t_abs[i]) + (S[i] * t_water[i - 1] / dz)) / U[i]
-
-
 for t in range(n_time_steps):
     n_converge = 0
     G_r[t] = 660*step_down(t*dtau, 3600)
     B, C, D, E, F, G, H, K, L, M, O, P, Q, R, S, U, V, W, X = coeff(
-        glass.t_glass, t_air, t_abs, t_water, t_insul, t_amb, dtau, dz, n_nodes, mdot, t, w_f)
+        glass.temp, air.temp, absorber.temp, water.temp, insulation.temp, t_amb, dtau, dz, n_nodes, mdot, t, w_f)
     n_iter = 0
     while n_converge < 5 * n_nodes:
         n_iter = n_iter + 1
-        # t_glass_old = t_glass.copy()
         glass.update_old()
-        t_air_old = t_air.copy()
-        t_abs_old = t_abs.copy()
-        t_water_old = t_water.copy()
-        t_insul_old = t_insul.copy()
-
-        glass.calc_t(0, t, dtau, t_amb, t_abs, t_air, G_r, B, C, D, E, F)
-        t_air[0] = calc_t_air(0, t, glass)
-        t_abs[0] = calc_t_abs(0, t, glass)
-        t_insul[0] = calc_t_insul(0, t)
-        t_water[0] = t_in[t]
+        air.update_old()
+        absorber.update_old()
+        water.update_old()
+        insulation.update_old()
+        glass.calc_t(0, t, dtau, t_amb, absorber.temp, air.temp, G_r, B, C, D, E, F)
+        air.calc_t(0, glass.temp, absorber.temp, dtau, G, H)
+        absorber.calc_t(0, t, dtau, glass.temp, air.temp, water.temp, insulation.temp, G_r, K, L, M, O, P, Q)
+        insulation.calc_t(0, t, dtau, absorber.temp, t_amb, V, W, X)
+        water.temp[0] = t_in[t]
         for j in range(1, n_nodes):
-            glass.calc_t(j, t, dtau, t_amb, t_abs, t_air, G_r, B, C, D, E, F)
-            t_air[j] = calc_t_air(j, t, glass)
-            t_abs[j] = calc_t_abs(j, t, glass)
-            t_water[j] = calc_t_water(j)
-            t_insul[j] = calc_t_insul(j, t)
-        n_converge = check_convergence(n_nodes, n_converge, glass)
-    t_glass_node[t] = glass.t_glass[selected_node]
-    t_air_node[t] = t_air[selected_node]
-    t_abs_node[t] = t_abs[selected_node]
-    t_water_node[t] = t_water[selected_node]
-    t_insul_node[t] = t_insul[selected_node]
-    t_out[t] = t_water[n_nodes - 1]
+            glass.calc_t(j, t, dtau, t_amb, absorber.temp, air.temp, G_r, B, C, D, E, F)
+            air.calc_t(j, glass.temp, absorber.temp, dtau, G, H)
+            absorber.calc_t(j, t, dtau, glass.temp, air.temp, water.temp, insulation.temp, G_r, K, L, M, O, P, Q)
+            water.calc_t(j, dtau, dz, absorber.temp, R, S, U)
+            insulation.calc_t(j, t, dtau, absorber.temp, t_amb, V, W, X)
+        n_converge = check_convergence(
+            n_nodes, n_converge, glass, air, absorber)
+    glass.select_node(t, selected_node)
+    air.select_node(t, selected_node)
+    absorber.select_node(t, selected_node)
+    water.select_node(t, selected_node)
+    insulation.select_node(t, selected_node)
+    t_out[t] = water.temp[n_nodes - 1]
     Q_dot[t] = mdot * n_tubes * 4186 * (t_out[t] - t_in[t])
     eff[t] = G_r[t] and Q_dot[t] / (G_r[t] * collector_area) or 0
 print('converged')
 runtime = time.time() - start
 print("Runtime:", runtime)
-plots(time_steps, dtau, t_glass_node, t_air_node, t_abs_node, t_water_node,
-      t_insul_node, t_amb, t_in, t_out, Q_dot, eff, selected_node, n_nodes)
-save_to_file(time_steps, dtau, t_in, G_r, t_abs_node, t_glass_node, Q_dot, eff)
+plots(time_steps, dtau, glass.selected_node, air.selected_node, absorber.selected_node, water.selected_node,
+      insulation.selected_node, t_amb, t_in, t_out, Q_dot, eff, selected_node, n_nodes)
+save_to_file(time_steps, dtau, t_in, G_r, absorber.selected_node,
+             glass.selected_node, Q_dot, eff)
