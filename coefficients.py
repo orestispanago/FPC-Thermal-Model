@@ -11,6 +11,46 @@ air = Air()
 water = Water()
 
 
+# def coeff_glass(dtau, h_glass_amb, h_r1, h_c1):
+#     B = h_glass_amb / (cp_glass * rho_glass * delta_glass)
+#     C = h_r1 / (cp_glass * rho_glass * delta_glass)
+#     D = h_c1 / (cp_glass * rho_glass * delta_glass)
+#     E = alpha / (cp_glass * rho_glass * delta_glass)
+#     F = (1 / dtau) + B + C + D
+#     return [B, C, D, E, F]
+
+
+# def coeff_air(h_c1, rho_air, dtau):
+#     G = h_c1 * p / (cp_air * rho_air * (p * delta_a - np.pi * r_o**2))
+#     H = (1 / dtau) + (2 * G)
+#     return [G, H]
+
+
+# def coeff_abs(h_r1, h_c1, h_water, dtau):
+#     J = cp_abs * rho_abs * (p * delta_abs + np.pi * (r_o**2 - r_in**2))
+#     K = p * (tau_alpha) / J
+#     L = h_r1 * p / J
+#     M = h_c1 * p / J
+#     O = np.pi * d_in * h_water / J
+#     P = p * k_insul / (J * delta_insul)
+#     Q = (1 / dtau) + L + M + O + P
+#     return [J, K, L, M, O, P, Q]
+
+
+# def coeff_water(h_water, cp_water, rho_water, mdot, dtau, dz):
+#     R = np.pi * d_in * h_water / (cp_water * rho_water * flow_area)
+#     S = mdot / (rho_water * flow_area)
+#     U = (1 / dtau) + R + (S / dz)
+#     return [R, S, U]
+
+
+# def coeff_ins(h_insul_amb, dtau):
+#     V = 2 * k_insul / (cp_insul * rho_insul * delta_insul**2)
+#     W = 2 * h_insul_amb / (cp_insul * rho_insul * delta_insul)
+#     X = (1 / dtau) + V + W
+#     return [V, W, X]
+
+
 def coeff(t_glass, t_air, t_abs, t_water, t_insul, t_amb, dtau, dz, n_nodes, mdot, t, w_f):
     """Coefficients of the transient temperature equations."""
     h_glass_amb, h_r1, h_c1, h_water, h_insul_amb = get_h(t_water, t_air, t_glass, t_abs, t_insul, n_nodes,
@@ -18,45 +58,29 @@ def coeff(t_glass, t_air, t_abs, t_water, t_insul, t_amb, dtau, dz, n_nodes, mdo
     rho_air = air.rho(t_air)
     rho_water = water.rho(t_water)
     cp_water = water.cp(t_water)
-    B = np.zeros((n_nodes))
-    C = np.zeros(n_nodes)
-    D = np.zeros(n_nodes)
-    E = np.zeros(n_nodes)
-    F = np.zeros(n_nodes)
-    J = np.zeros(n_nodes)
-    K = np.zeros(n_nodes)
-    L = np.zeros(n_nodes)
-    M = np.zeros(n_nodes)
-    O = np.zeros(n_nodes)
-    P = np.zeros(n_nodes)
-    G = np.zeros(n_nodes)
-    H = np.zeros(n_nodes)
-    Q = np.zeros(n_nodes)
-    R = np.zeros(n_nodes)
-    S = np.zeros(n_nodes)
-    U = np.zeros(n_nodes)
-    V = np.zeros(n_nodes)
-    W = np.zeros(n_nodes)
-    X = np.zeros(n_nodes)
-    for j in range(n_nodes):
-        B[j] = h_glass_amb[j] / (cp_glass * rho_glass * delta_glass)
-        C[j] = h_r1[j] / (cp_glass * rho_glass * delta_glass)
-        D[j] = h_c1[j] / (cp_glass * rho_glass * delta_glass)
-        E[j] = alpha / (cp_glass * rho_glass * delta_glass)
-        F[j] = (1 / dtau) + B[j] + C[j] + D[j]
-        J[j] = cp_abs * rho_abs * (p * delta_abs + np.pi * (r_o**2 - r_in**2))
-        K[j] = p * (tau_alpha) / J[j]
-        L[j] = h_r1[j] * p / J[j]
-        M[j] = h_c1[j] * p / J[j]
-        O[j] = np.pi * d_in * h_water[j] / J[j]
-        P[j] = p * k_insul / (J[j] * delta_insul)
-        G[j] = h_c1[j] * p / (cp_air * rho_air[j] * (p * delta_a - np.pi * r_o**2))
-        H[j] = (1 / dtau) + (2 * G[j])
-        Q[j] = (1 / dtau) + L[j] + M[j] + O[j] + P[j]
-        R[j] = np.pi * d_in * h_water[j] / (cp_water[j] * rho_water[j] * flow_area)
-        S[j] = mdot / (rho_water[j] * flow_area)
-        U[j] = (1 / dtau) + R[j] + (S[j] / dz)
-        V[j] = 2 * k_insul / (cp_insul * rho_insul * delta_insul**2)
-        W[j] = 2 * h_insul_amb[j] / (cp_insul * rho_insul * delta_insul)
-        X[j] = (1 / dtau) + V[j] + W[j]
+    """Glass"""
+    B = h_glass_amb / (cp_glass * rho_glass * delta_glass)
+    C = h_r1 / (cp_glass * rho_glass * delta_glass)
+    D = h_c1 / (cp_glass * rho_glass * delta_glass)
+    E = alpha / (cp_glass * rho_glass * delta_glass)
+    F = (1 / dtau) + B + C + D
+    """Air"""
+    G = h_c1 * p / (cp_air * rho_air * (p * delta_a - np.pi * r_o**2))
+    H = (1 / dtau) + (2 * G)
+    """Absorber"""
+    J = cp_abs * rho_abs * (p * delta_abs + np.pi * (r_o**2 - r_in**2))
+    K = p * (tau_alpha) / J
+    L = h_r1 * p / J
+    M = h_c1 * p / J
+    O = np.pi * d_in * h_water / J
+    P = p * k_insul / (J * delta_insul)
+    Q = (1 / dtau) + L + M + O + P
+    """Water"""
+    R = np.pi * d_in * h_water / (cp_water * rho_water * flow_area)
+    S = mdot / (rho_water * flow_area)
+    U = (1 / dtau) + R + (S / dz)
+    """Insulation"""
+    V = 2 * k_insul / (cp_insul * rho_insul * delta_insul**2)
+    W = 2 * h_insul_amb / (cp_insul * rho_insul * delta_insul)
+    X = (1 / dtau) + V + W
     return [B, C, D, E, F, G, H, K, L, M, O, P, Q, R, S, U, V, W, X]

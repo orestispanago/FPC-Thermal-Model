@@ -23,7 +23,7 @@ class GlassCover(Component):
 
     def calc_t(self, i, t, dtau, t_amb, t_abs, t_air, G_r, B, C, D, E, F):
         self.temp[i] = ((self.temp_old[i] / dtau) + (B[i] * t_amb[t]) +
-                        (C[i] * t_abs[i]) + (D[i] * t_air[i]) + (E[i] * G_r[t])) / F[i]
+                        (C[i] * t_abs[i]) + (D[i] * t_air[i]) + (E * G_r[t])) / F[i]
 
 
 class AirGap(Component):
@@ -40,8 +40,8 @@ class Absorber(Component):
         super().__init__(n_nodes, temp_0, n_time_steps)
 
     def calc_t(self, i, t, dtau, t_glass, t_air, t_water, t_insul, G_r, K, L, M, O, P, Q):
-        self.temp[i] = ((self.temp_old[i] / dtau) + (K[i] * G_r[t]) + (L[i] * t_glass[i]) +
-                        (M[i] * t_air[i]) + (O[i] * t_water[i]) + (P[i] * t_insul[i])) / Q[i]
+        self.temp[i] = ((self.temp_old[i] / dtau) + (K * G_r[t]) + (L[i] * t_glass[i]) +
+                        (M[i] * t_air[i]) + (O[i] * t_water[i]) + (P * t_insul[i])) / Q[i]
 
 
 class Water(Component):
@@ -58,5 +58,5 @@ class Insulation(Component):
         super().__init__(n_nodes, temp_0, n_time_steps)
 
     def calc_t(self, i, t, dtau, t_abs, t_amb, V, W, X):
-        self.temp[i] = ((self.temp_old[i] / dtau) +
-                        (V[i] * t_abs[i]) + (W[i] * t_amb[t])) / X[i]
+        self.temp = ((self.temp_old[i] / dtau) +
+                     (V * t_abs[i]) + (W * t_amb[t])) / X

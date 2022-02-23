@@ -71,7 +71,8 @@ for t in range(n_time_steps):
     n_converge = 0
     G_r[t] = 660*step_down(t*dtau, 3600)
     B, C, D, E, F, G, H, K, L, M, O, P, Q, R, S, U, V, W, X = coeff(
-        glass.temp, air.temp, absorber.temp, water.temp, insulation.temp, t_amb, dtau, dz, n_nodes, mdot, t, w_f)
+        glass.temp, air.temp, absorber.temp, water.temp, insulation.temp, 
+        t_amb, dtau, dz, n_nodes, mdot, t, w_f)
     n_iter = 0
     while n_converge < 5 * n_nodes:
         n_iter = n_iter + 1
