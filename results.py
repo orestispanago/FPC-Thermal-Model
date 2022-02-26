@@ -51,7 +51,7 @@ water = Water(n_nodes, 293, n_time_steps)
 insulation = Insulation(n_nodes, 293, n_time_steps)
 
 
-def check_convergence(n_nodes, n_converge, glass, air, absorber):
+def check_convergence(n_nodes, n_converge, glass, air, absorber, water, insulation):
     for j in range(n_nodes):
         error = np.zeros(5)
         error[0] = glass.error(j)
@@ -72,7 +72,7 @@ for t in range(n_time_steps):
     G_r[t] = 660*step_down(t*dtau, 3600)
     B, C, D, E, F, G, H, K, L, M, O, P, Q, R, S, U, V, W, X = coeff(
         glass.temp, air.temp, absorber.temp, water.temp, insulation.temp,
-        t_amb[t], dtau, dz, n_nodes, mdot, w_f)
+        t_amb[t], dtau, dz, mdot, w_f)
     n_iter = 0
     while n_converge < 5 * n_nodes:
         n_iter = n_iter + 1
@@ -89,12 +89,15 @@ for t in range(n_time_steps):
         insulation.calc_t(0, t, dtau, absorber.temp, t_amb, V, W, X)
         water.temp[0] = t_in[t]
         for j in range(1, n_nodes):
-            glass.calc_t(j, t, dtau, t_amb, absorber.temp,air.temp, G_r, B, C, D, E, F)
+            glass.calc_t(j, t, dtau, t_amb, absorber.temp,
+                         air.temp, G_r, B, C, D, E, F)
             air.calc_t(j, glass.temp, absorber.temp, dtau, G, H)
-            absorber.calc_t(j, t, dtau, glass.temp, air.temp,water.temp, insulation.temp, G_r, K, L, M, O, P, Q)
+            absorber.calc_t(j, t, dtau, glass.temp, air.temp,
+                            water.temp, insulation.temp, G_r, K, L, M, O, P, Q)
             water.calc_t(j, dtau, dz, absorber.temp, R, S, U)
             insulation.calc_t(j, t, dtau, absorber.temp, t_amb, V, W, X)
-        n_converge = check_convergence(n_nodes, n_converge, glass, air, absorber)
+        n_converge = check_convergence(
+            n_nodes, n_converge, glass, air, absorber, water, insulation)
     glass.select_node(t, selected_node)
     air.select_node(t, selected_node)
     absorber.select_node(t, selected_node)
