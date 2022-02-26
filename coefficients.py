@@ -51,10 +51,10 @@ water = Water()
 #     return [V, W, X]
 
 
-def coeff(t_glass, t_air, t_abs, t_water, t_insul, t_amb, dtau, dz, n_nodes, mdot, t, w_f):
+def coeff(t_glass, t_air, t_abs, t_water, t_insul, t_amb, dtau, dz, n_nodes, mdot, w_f):
     """Coefficients of the transient temperature equations."""
     h_glass_amb, h_r1, h_c1, h_water, h_insul_amb = get_h(t_water, t_air, t_glass, t_abs, t_insul, n_nodes,
-                                                          t_amb, delta_a, d_in, t, w_f)
+                                                          t_amb, delta_a, d_in, w_f)
     rho_air = air.rho(t_air)
     rho_water = water.rho(t_water)
     cp_water = water.cp(t_water)
