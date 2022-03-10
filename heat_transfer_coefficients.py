@@ -1,14 +1,15 @@
 import numpy as np
 
-from constants import emi_abs, emi_glass, emi_insul, g, length, segma, width
+from constants import emi_abs, emi_glass, emi_insul, g, length, segma
 from properties import air, ambient, water
 
 
-def h_external(t_surface, t_amb, h_c2, segma, emissivity, t_sky):
+def h_external(t_surface, t_amb, h_c2, segma, emissivity):
     """Calculates heat transfer coefficient of external surface (glass or insulation)"""
-    if t_surface - t_amb == 0:
+    t_sky = 0.0552 * t_amb**1.5
+    if abs(t_surface - t_amb) <= 0.1:
         return h_c2
-    return ((segma * emissivity * (t_surface**4 - t_sky ** 4)) / (t_surface - t_amb)) + h_c2
+    return segma * emissivity * (t_surface**4 - t_sky ** 4) / (t_surface - t_amb) + h_c2
 
 
 def h_radiation(t_abs, t_glass):
@@ -34,12 +35,10 @@ def nu_air(Ra, theta):
     if AA <= 0:
         if BB <= 0:
             return 1
-        else:
-            return 1 + BB
-    elif BB <= 0:
+        return 1 + BB
+    if BB <= 0:
         return 1 + (1.44 * (1 - (1708 * (np.sin(1.8 * theta)) ** 1.6 / (Ra * np.cos(theta)))) * AA)
-    else:
-        return 1 + (1.44 * (1 - (1708 * (np.sin(1.8 * theta)) ** 1.6 / (Ra * np.cos(theta)))) * AA) + BB
+    return 1 + (1.44 * (1 - (1708 * (np.sin(1.8 * theta)) ** 1.6 / (Ra * np.cos(theta)))) * AA) + BB
 
 
 h_external_v = np.vectorize(h_external)
@@ -53,10 +52,9 @@ def get_h(t_water, t_air, t_glass, t_abs, t_insul, t_amb, delta_a, d_in, w_f):
     theta = (np.pi / 4)  # tilt angle
     h_water = water.h(t_water, d_in, w_f, length)
     h_c2 = ambient.h
-    t_sky = 0.0552 * t_amb**1.5
     Ra = rayleigh(t_glass, t_abs, delta_a, ny_air, alpha_air, t_air)
-    h_g_am = h_external_v(t_glass, t_amb, h_c2, segma, emi_glass, t_sky)
-    h_i_am = h_external_v(t_insul, t_amb, h_c2, segma, emi_insul, t_sky)
+    h_g_am = h_external_v(t_glass, t_amb, h_c2, segma, emi_glass)
+    h_i_am = h_external_v(t_insul, t_amb, h_c2, segma, emi_insul)
     Nu_a = nu_air_v(Ra, theta)
     h_r1 = h_radiation(t_abs, t_glass)
     h_c1 = h_free_convection(Nu_a, k_air, delta_a)
