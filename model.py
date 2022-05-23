@@ -4,7 +4,7 @@ from coefficients import coeff
 from temp_calculations import (calc_error, calc_t_abs, calc_t_air,
                                calc_t_glass, calc_t_ins, calc_t_w)
 
-from config import n_time_steps, n_nodes, dtau, dz, mdot, w_f, t_amb_0, t_in_0, t_init
+from config import n_time_steps, n_nodes, dtau, dz, mdot, w_f, t_amb_0, t_in_0, t_init, trigger_time
 
 
 start = time.time()
@@ -19,7 +19,7 @@ def step_down(t, trigger_time):
     return 1 * (t < trigger_time)
 
 time_steps = np.arange(n_time_steps)
-G_r = 660*step_down(time_steps*dtau, 3600) # Heat flux of solar radiation. (W/sqm)
+G_r = 660*step_down(time_steps*dtau, trigger_time) # Heat flux of solar radiation. (W/sqm)
 
 
 def check_convergence(n_converge, t_glass, t_glass_old, t_air, t_air_old, 
@@ -30,10 +30,10 @@ def check_convergence(n_converge, t_glass, t_glass_old, t_air, t_air_old,
     error_w = calc_error(t_water, t_water_old)
     error_ins = calc_error(t_ins, t_ins_old)
     for i in [error_g, error_air, error_abs, error_w, error_ins]:
-        if (i <= 10**-4).sum()==n_nodes:
-            n_converge += 8
-        else:
+        if np.any(i > 10**-4):
             return n_converge
+        else:
+            n_converge+=len(t_glass)
     return n_converge
 
 def run():
@@ -65,6 +65,7 @@ def run():
         t_wc[:,t] = t_water
         t_insc[:,t] = t_ins
     print(f"Runtime: {(time.time() - start):.3f}")
+    
     return [t_gc, t_ac, t_absc, t_wc, t_insc]
 
 

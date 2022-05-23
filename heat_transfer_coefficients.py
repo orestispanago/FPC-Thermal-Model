@@ -37,8 +37,8 @@ def nu_air(Ra, theta):
             return 1
         return 1 + BB
     if BB <= 0:
-        return 1 + (1.44 * (1 - (1708 * (np.sin(1.8 * theta)) ** 1.6 / (Ra * np.cos(theta)))) * AA)
-    return 1 + (1.44 * (1 - (1708 * (np.sin(1.8 * theta)) ** 1.6 / (Ra * np.cos(theta)))) * AA) + BB
+        return 1 + 1.44 * (1 - (1708 * (np.sin(1.8 * theta)) ** 1.6 / (Ra * np.cos(theta)))) * AA
+    return 1 + 1.44 * (1 - (1708 * (np.sin(1.8 * theta)) ** 1.6 / (Ra * np.cos(theta)))) * AA + BB
 
 
 h_external_v = np.vectorize(h_external)
